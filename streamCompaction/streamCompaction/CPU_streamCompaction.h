@@ -1,0 +1,1 @@
+void exPrefixSum(float * input, int n, float * out);
