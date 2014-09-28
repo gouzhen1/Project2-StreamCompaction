@@ -5,6 +5,7 @@
 #include "CPU_streamCompaction.h"
 
 using namespace std;
+#define BLOCKDIM 128;
 
 float Log2(float n)
 {
@@ -87,24 +88,115 @@ __global__ void MultiBlockInclusivePrefixSum(int D, float * input, float * aux, 
 	if(localIndex ==  blockDim.x - 1) aux[blockIdx.x] = (globalIndex>n)? input[n-1]: input[globalIndex];
 }
 
+void NaiveGPUexclusiveScan(float * input, float * output, int n)
+{
+	int blockSize = BLOCKDIM;
+	int gridSize = ceil((float)n/(float)blockSize); 
+	float * dev_buffer;
+	cudaMalloc((void**) & dev_buffer, (n + 1) * sizeof(float));
 
+	dim3 gridDim(gridSize);
+	dim3 blockDim(blockSize);
+	for(int i=1;i<=Log2(n) + 1;i++)
+	{
+		int D = pow(2,i-1);
+		NaiveExclusivePrefixSum<<<gridDim,blockDim>>>(D,input,output, dev_buffer,n);
+	}
 
+}
+
+void GPUexclusiveScan(float * input, float * output, int n)
+{
+	int blockDim = BLOCKDIM;
+	int gridDim = ceil((float)n/(float)blockDim);
+	float *dev_input, * dev_aux, * dev_buffer;
+	cudaMalloc((void**) & dev_input, (n) * sizeof(float));
+	cudaMalloc((void**) & dev_aux, (gridDim) * sizeof(float));
+	cudaMalloc((void**) & dev_buffer, (n + 1) * sizeof(float));
+
+	cudaMemcpy(dev_input, input, n*sizeof(float),cudaMemcpyDeviceToDevice);
+
+	int D(0);
+	for(int i=1;i< Log2(n) + 1;i++)
+	{
+		D = pow(2,i-1);
+		MultiBlockInclusivePrefixSum<<<gridDim,blockDim,n*sizeof(float)>>>(D,dev_input,dev_aux,n);
+	}
+	/*
+	//print aux
+	cudaMemcpy(res, dev_aux, (gridDim)*sizeof(float),cudaMemcpyDeviceToHost);
+	cout<<"aux: ";
+	for(int i=0;i<gridDim;i++)
+	{
+		cout<<res[i]<<" ";
+	}
+	cout<<endl;*/
+	//scan aux
+	for(int i=1;i< Log2(gridDim) + 1;i++)
+	{
+		D = pow(2,i-1);
+		NaiveInclusivePrefixSum<<<ceil((float)gridDim/(float)blockDim),blockDim,gridDim*sizeof(float)>>>(D,dev_aux,dev_buffer,gridDim);
+	}
+	//print scanned aux
+	/*
+	cudaMemcpy(res, dev_aux, (gridDim)*sizeof(float),cudaMemcpyDeviceToHost);
+	cout<<"scanned aux: ";
+	for(int i=0;i<gridDim;i++)
+	{
+		cout<<res[i]<<" ";
+	}
+	cout<<endl;*/
+
+	//add aux to dev_in
+	AddAuxToBlockedPrefixSum<<<gridDim+1,blockDim>>>(dev_input,dev_aux,output,n+1);
+}
+
+__global__ void generateBoolArray(float * input, float * out, int n)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	if(index <n) out[index] = (input[index] == 0.0f )? 0.0f: 1.0f;
+}
+
+__global__ void generateCompactArray(float * input,float * boolArray, float * scannedBool, float * output, int n)
+{
+	int index = blockDim.x * blockIdx.x + threadIdx.x;
+	if(index < n)
+	{
+		if(boolArray[index] > 0.0f) output[(int)scannedBool[index]] = input[index];
+	}
+}
+void GPUstreamCompaction(float * input, float * output, int n)
+{
+	int blockDim = BLOCKDIM;
+	int gridDim = ceil((float)n/(float)blockDim);
+
+	float * boolArray, * scannedBool;
+	cudaMalloc((void**) & boolArray, n * sizeof(float));
+	cudaMalloc((void**) & scannedBool, (n+1) * sizeof(float));
+
+	generateBoolArray<<<gridDim,blockDim>>>(input,boolArray,n);
+	GPUexclusiveScan(boolArray,scannedBool,n);
+	generateCompactArray<<<gridDim,blockDim>>>(input,boolArray, scannedBool, output, n);
+
+}
 
 int main(int argc, char** argv)
 {
-
+	//timers
+	cudaEvent_t start, stop; 
+	float time = 0.0f;
 	//init
-	float * in, *res, *dev_in, * dev_res, * dev_buffer;
-	int n = 6;
+	float * in, *res, *dev_in, * dev_res;
+	int n = 1000000;
 	in = (float*)malloc(n * sizeof(float));
 	res = (float*)malloc((1+n) * sizeof(float));
 	cudaMalloc((void**) & dev_in, n * sizeof(float));
 	cudaMalloc((void**) & dev_res, (n+1) * sizeof(float));
-	cudaMalloc((void**) & dev_buffer, (n+1) * sizeof(float));
 	//load data
 	for(int i=0;i<n;i++)
 	{
-		in[i] = (float) i;
+		//in[i] = (float) i;
+		in[i] = (i%2 == 0) ? i : 0.0f;
 	}
 //	in[0] = 1.0f;in[1] = 3.0f;in[2] = 2.0f;in[3] = 1.0f;in[4] = 4.0f;in[5] = 2.5f;
 	cudaMemcpy(dev_in,in,n * sizeof(float),cudaMemcpyHostToDevice);
@@ -113,23 +205,47 @@ int main(int argc, char** argv)
 	cout<<"input: ";
 	for(int i=0;i<n;i++)
 	{
-		cout<<in[i]<<" ";
+		//cout<<in[i]<<" ";
 	}
 	cout<<endl;
 
-	//CPU exprefixsum
-	//exPrefixSum(in,n,res);
+	//CPU exprefixsum////////////////////////////////////////////////////////////////////////////////
 	
-	#if(0)//naive GPU ex prefix sum//////////////////////////////////////////////////////////////////
-	int gridSize = 1;
-	int blockSize = n+1;
-	dim3 gridDim(gridSize);
-	dim3 blockDim(blockSize);
-	for(int i=1;i<=Log2(n) + 1;i++)
+	CPUstreamCompaction(in,n,res);
+
+	cout<<"CPU stream compact runtime: "<<time<<" ms"<<endl;
+	cout<<"CPU compact stream result: ";
+	for(int i=0;i<n+1;i++)
 	{
-		int D = pow(2,i-1);
-		NaiveExclusivePrefixSum<<<gridDim,blockDim>>>(D,dev_in,dev_res, dev_buffer,n);
+		//cout<<res[i]<<" ";
 	}
+	cout<<endl;
+	///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	#if(1)//naive GPU ex prefix sum//////////////////////////////////////////////////////////////////
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord( start, 0 );
+	NaiveGPUexclusiveScan(dev_in,dev_res,n);
+	cudaEventRecord( stop, 0 );
+	cudaEventSynchronize( stop );
+	cudaEventElapsedTime( &time, start, stop );
+	cudaEventDestroy( start );
+	cudaEventDestroy( stop );
+	cout<<"Naive GPU scan runtime: "<<time<<" ms"<<endl;
+	#endif////////////////////////////////////////////////////////////////////////////////////////////////
+
+	#if(1)//naive GPU ex prefix sum//////////////////////////////////////////////////////////////////
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord( start, 0 );
+	GPUexclusiveScan(dev_in,dev_res,n);
+	cudaEventRecord( stop, 0 );
+	cudaEventSynchronize( stop );
+	cudaEventElapsedTime( &time, start, stop );
+	cudaEventDestroy( start );
+	cudaEventDestroy( stop );
+	cout<<"GPU scan runtime: "<<time<<" ms"<<endl;
 	#endif////////////////////////////////////////////////////////////////////////////////////////////////
 
 	#if(0)//single block with shared memory ex prefix sum////////////////////////////////////////////////////////
@@ -140,52 +256,29 @@ int main(int argc, char** argv)
 	}
 	#endif////////////////////////////////////////////////////////////////////////////////////////////
 
-	#if(1)//shared memory ex prefix sum of arbitrary length array////////////////////////////////////////////////////////
-	int blockDim = 4;
-	int gridDim = 2;
-	float * dev_aux;
-	cudaMalloc((void**) & dev_aux, (gridDim) * sizeof(float));
-	int D(0);
-	for(int i=1;i< Log2(n) + 1;i++)
-	{
-		D = pow(2,i-1);
-		MultiBlockInclusivePrefixSum<<<gridDim,blockDim,n*sizeof(float)>>>(D,dev_in,dev_aux,n);
-	}
-	//print aux
-	cudaMemcpy(res, dev_aux, (gridDim)*sizeof(float),cudaMemcpyDeviceToHost);
-	cout<<"aux: ";
-	for(int i=0;i<gridDim;i++)
-	{
-		cout<<res[i]<<" ";
-	}
-	cout<<endl;
-	//scan aux
-	for(int i=1;i< Log2(gridDim) + 1;i++)
-	{
-		D = pow(2,i-1);
-		NaiveInclusivePrefixSum<<<ceil((float)gridDim/(float)blockDim),blockDim,gridDim*sizeof(float)>>>(D,dev_aux,dev_buffer,gridDim);
-	}
-	//print scanned aux
-	cudaMemcpy(res, dev_aux, (gridDim)*sizeof(float),cudaMemcpyDeviceToHost);
-	cout<<"scanned aux: ";
-	for(int i=0;i<gridDim;i++)
-	{
-		cout<<res[i]<<" ";
-	}
-	cout<<endl;
-	//add aux//
-	AddAuxToBlockedPrefixSum<<<gridDim,blockDim>>>(dev_in,dev_aux,dev_res,n);
 
-	//shift//
-	///////
-	#endif////////////////////////////////////////////////////////////////////////////////////////////
+	#if(0)//////////////////////////////////////////////////////////////////////////////////////////////////////
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord( start, 0 );
+
+	GPUstreamCompaction(dev_in,dev_res,n);
+
+	cudaEventRecord( stop, 0 );
+	cudaEventSynchronize( stop );
+	cudaEventElapsedTime( &time, start, stop );
+	cudaEventDestroy( start );
+	cudaEventDestroy( stop );
 
 
-	cudaMemcpy(res, dev_res, (n+1)*sizeof(float),cudaMemcpyDeviceToHost);
-	cout<<"ex prefix sum: ";
+	cout<<"GPU stream compact runtime: "<<time<<" ms"<<endl;
+	#endif//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	cudaMemcpy(res, dev_res, (n)*sizeof(float),cudaMemcpyDeviceToHost);
+	cout<<"GPU stream compact result: ";
 	for(int i=0;i<n+1;i++)
 	{
-		cout<<res[i]<<" ";
+		//cout<<res[i]<<" ";
 	}
 
 	cin.get();

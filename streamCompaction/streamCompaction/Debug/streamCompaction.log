@@ -1,20 +1,25 @@
-﻿Build started 9/27/2014 12:11:57 AM.
+﻿Build started 9/27/2014 11:37:53 PM.
      1>Project "C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\streamCompaction\streamCompaction.vcxproj" on node 2 (Build target(s)).
      1>AddCudaCompileDeps:
          D:\Microsoft Visual Studio 2012\VC\bin\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /D_MBCS /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include" /I. /FIcuda_runtime.h /c "C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\streamCompaction\kernel.cu" 
        CudaBuild:
          Compiling CUDA source file kernel.cu...
-         cmd.exe /C "C:\Users\Zhen Gou\AppData\Local\Temp\tmpe78b584515e6455ea37b8848e7d6b5ce.cmd"
+         cmd.exe /C "C:\Users\Zhen Gou\AppData\Local\Temp\tmp33eefe197f58439da8d5d0db8b37714e.cmd"
          "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2012 -ccbin "D:\Microsoft Visual Studio 2012\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd  " -o Debug\kernel.cu.obj "C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\streamCompaction\kernel.cu"
          
          C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\streamCompaction>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_20,compute_20\" --use-local-env --cl-version 2012 -ccbin "D:\Microsoft Visual Studio 2012\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include"  -G   --keep-dir Debug -maxrregcount=0  --machine 32 --compile -cudart static  -g   -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Zi /RTC1 /MDd  " -o Debug\kernel.cu.obj "C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\streamCompaction\kernel.cu" 
          kernel.cu
-     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(11): warning C4244: 'return' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(149): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(151): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(163): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(165): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(166): warning C4244: 'argument' : conversion from 'float' to 'unsigned int', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(12): warning C4244: 'return' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(94): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(100): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(102): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(111): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(120): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(122): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(135): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(137): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(138): warning C4244: 'argument' : conversion from 'float' to 'unsigned int', possible loss of data
+     1>C:/Users/Zhen Gou/Documents/Visual Studio 2010/Projects/Project2-StreamCompaction/streamCompaction/streamCompaction/kernel.cu(171): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
        Link:
          D:\Microsoft Visual Studio 2012\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\Debug\streamCompaction.exe" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\lib\Win32" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib cudart.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\Debug\streamCompaction.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Zhen Gou\Documents\Visual Studio 2010\Projects\Project2-StreamCompaction\streamCompaction\Debug\streamCompaction.lib" /MACHINE:X86 Debug\kernel.cu.obj
          Debug\CPU_streamCompaction.obj
@@ -23,4 +28,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:04.22
+Time Elapsed 00:00:04.31
