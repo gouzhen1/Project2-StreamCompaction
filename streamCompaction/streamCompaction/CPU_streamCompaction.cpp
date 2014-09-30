@@ -1,4 +1,5 @@
 #include "CPU_streamCompaction.h"
+//Part 1
 void exPrefixSum(float * input, int n, float * out)
 {
 	float curSum = 0.0f;

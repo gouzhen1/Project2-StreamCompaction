@@ -2,6 +2,8 @@
 #include <cuda_runtime.h>
 #include <thrust/scan.h>
 #include <thrust/device_vector.h>
+#include <thrust/copy.h>
+#include <thrust/count.h>
 
 #include <iostream>
 #include <cmath>
@@ -10,7 +12,7 @@
 #include "CPU_streamCompaction.h"
 
 using namespace std;
-#define BLOCKDIM 128;
+#define BLOCKDIM 256;
 
 float Log2(float n)
 {
@@ -23,6 +25,7 @@ __global__ void dev_initialize_array(int n, float * tar, float val)
 	if(index < n) tar[index] = val;
 }
 
+//helper for shared mem ex scan
 __global__ void AddAuxToBlockedPrefixSum(float * input, float * aux, int n)
 {
 	int index = blockDim.x * blockIdx.x + threadIdx.x;
@@ -31,6 +34,7 @@ __global__ void AddAuxToBlockedPrefixSum(float * input, float * aux, int n)
 
 }
 
+//single block shared memory ex scan
 __global__ void SingleBlockExclusivePrefixSum(int D, float * input,float * output, int n)
 {
 	extern __shared__ float buffer[];	
@@ -48,7 +52,7 @@ __global__ void SingleBlockExclusivePrefixSum(int D, float * input,float * outpu
 	output[index] = (index>0) ? input[index-1]:0.0f;
 }
 
-//in-place result, in input
+//helper for arbitrary array length shared mem scan
 __global__ void MultiBlockInclusivePrefixSum(float * input, float * aux, int n)
 {
 	extern __shared__ float buffer[];	
@@ -326,7 +330,7 @@ void GPUstreamCompaction(float * input, float * output, int n)
 	cudaEventElapsedTime( &time1, start, stop );
 	cudaEventDestroy( start );
 	cudaEventDestroy( stop );
-	cout<<"GPU scan bool array: "<<time1<<" ms"<<endl;
+	//cout<<"GPU scan bool array: "<<time1<<" ms"<<endl;
 
 	cudaEventCreate(&start2);
 	cudaEventCreate(&stop2);
@@ -338,7 +342,8 @@ void GPUstreamCompaction(float * input, float * output, int n)
 	cudaEventElapsedTime( &time2, start2, stop2 );
 	cudaEventDestroy( start2 );
 	cudaEventDestroy( stop2 );
-	cout<<"GPU generate compact array: "<<time2<<" ms"<<endl;
+	//cout<<"GPU generate compact array: "<<time2<<" ms"<<endl;
+	cout<<"GPU stream compaction: "<<(time1 + time2)<<" ms"<<endl;
 
 	//free memory
 	cudaFree(boolArray);
@@ -375,7 +380,7 @@ void ThrustStreamCompaction(float * input, float * output, int n)
 	cudaEventElapsedTime( &time1, start, stop );
 	cudaEventDestroy( start );
 	cudaEventDestroy( stop );
-	cout<<"Thrust scan bool array: "<<time1<<" ms"<<endl;
+	//cout<<"Thrust scan bool array: "<<time1<<" ms"<<endl;
 	
 
 	cudaEventCreate(&start2);
@@ -388,31 +393,51 @@ void ThrustStreamCompaction(float * input, float * output, int n)
 	cudaEventElapsedTime( &time2, start2, stop2 );
 	cudaEventDestroy( start2 );
 	cudaEventDestroy( stop2 );
-	cout<<"Thrust generate compact array: "<<time2<<" ms"<<endl;
-
+	//cout<<"Thrust generate compact array: "<<time2<<" ms"<<endl;
+	cout<<"Thrust GPU stream compaction: "<<(time1 + time2)<<" ms"<<endl;
 	//free memory
 	cudaFree(boolArray);
 	cudaFree(scannedBool);
 
+}
+struct NoneZero
+{
+	__host__ __device__ bool operator()(const float num)
+	{
+		return num!=0.0f;
+	}
+};
+
+float * ThrustStreamCompaction(float * input, int N, int & resN)
+{
+	resN = thrust::count_if(input, input + N, NoneZero());
+	float * res = new float[resN];
+	thrust::copy_if(input, input + N, res, NoneZero());
+	return res;
 }
 
 int main(int argc, char** argv)
 {
 	//init
 	float * in, *res, *dev_in, * dev_res;
-	int n = 2796899;
+	/*cout<<" enter array size N:"<<endl;
+	int n(0);
+	cin>>n;
+	cin.ignore();*/
+	int n = 10000000;
+
 	in = (float*)malloc(n * sizeof(float));
 	res = (float*)malloc((1+n) * sizeof(float));
 	cudaMalloc((void**) & dev_in, n * sizeof(float));
 	cudaMalloc((void**) & dev_res, (n+1) * sizeof(float));
-	//load data
+
+	//load testing data 0 1 0 3 0 5 0 7.....................
 	for(int i=0;i<n;i++)
 	{
-		//in[i] = (float) i;
 		in[i] = (i%2 != 0) ? float(i): 0.0f;
 	}
 
-	cudaMemcpy(dev_in,in,n * sizeof(float),cudaMemcpyHostToDevice);
+
 
 	//print input
 	cout<<"input: ";
@@ -422,24 +447,42 @@ int main(int argc, char** argv)
 	}
 	cout<<endl;
 
-	//NaiveGPUexclusiveScan(dev_in,dev_res,n);
-	//NaiveGPUinclusiveScan(dev_in,n);
-	//GPUexclusiveScan(dev_in,dev_res,n);
 
-	//CPU exprefixsum////////////////////////////////////////////////////////////////////////////////
-	#if(1)
+	//CPU scan////////////////////////////////////////////////////////////////////////////////
 	clock_t startTime = clock();
-	CPUstreamCompaction(in,n,res);
+	exPrefixSum(in,n,res);
 	clock_t endTime = clock();
 	double timeInMilli =( (double)endTime - (double)startTime)/((double) CLOCKS_PER_SEC)*1000.0000000f;
-	cout<<"CPU stream compact runtime: "<<timeInMilli<<" ms"<<endl;
-	cout<<"CPU compact stream result: ";
-	for(int i=0;i<n+1;i++)
-	{
-		//cout<<res[i]<<" ";
-	}
-	cout<<endl;
-	#endif///////////////////////////////////////////////////////////////////////////////////////////////////////
+	cout<<"CPU scan runtime: "<<timeInMilli<<" ms"<<endl;
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	//GPU scan/////////////////////////////////////////////////////////////////////
+	cudaMemcpy(dev_in,in,n * sizeof(float),cudaMemcpyHostToDevice);
+	cudaEvent_t start, stop,start2,stop2; 
+	float time1, time2;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord( start, 0 );
+	NaiveGPUexclusiveScan(dev_in,dev_res,n);
+	cudaEventRecord( stop, 0 );
+	cudaEventSynchronize( stop );
+	cudaEventElapsedTime( &time1, start, stop );
+	cudaEventDestroy( start );
+	cudaEventDestroy( stop );
+	cout<<"Naive GPU scan: "<<time1<<" ms"<<endl;
+
+	cudaMemcpy(dev_in,in,n * sizeof(float),cudaMemcpyHostToDevice);
+	cudaEventCreate(&start2);
+	cudaEventCreate(&stop2);
+	cudaEventRecord( start2, 0 );
+	GPUexclusiveScan(dev_in,dev_res,n);
+	cudaEventRecord( stop2, 0 );
+	cudaEventSynchronize( stop2 );
+	cudaEventElapsedTime( &time2, start2, stop2 );
+	cudaEventDestroy( start2 );
+	cudaEventDestroy( stop2 );
+	cout<<"GPU scan: "<<time2<<" ms"<<endl;
+	///////////////////////////////////////////////////////////////////////////////////////////
 
 	#if(0)//single block with shared memory ex prefix sum////////////////////////////////////////////////////////
 	for(int i=1;i< Log2(n) + 1;i++)
@@ -449,26 +492,69 @@ int main(int argc, char** argv)
 	}
 	#endif////////////////////////////////////////////////////////////////////////////////////////////
 
+	//CPU stream compact////////////////////////////////////////////////////////////////////////////////////////
+	startTime = clock();
+	CPUstreamCompaction(in,n,res);
+	endTime = clock();
+	timeInMilli =( (double)endTime - (double)startTime)/((double) CLOCKS_PER_SEC)*1000.0000000f;
+	cout<<"CPU stream compact runtime: "<<timeInMilli<<" ms"<<endl;
+	///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	//MY GPU Stream compaction
 	#if(1)///////////////////////////////////////////////////////////////////////////////////////////////////////
+	cudaMemcpy(dev_in,in,n * sizeof(float),cudaMemcpyHostToDevice);
 	GPUstreamCompaction(dev_in,dev_res,n);
 	//ThrustStreamCompaction(dev_in,dev_res,n);
 	
 	cudaMemcpy(res, dev_res, (n+1)*sizeof(float),cudaMemcpyDeviceToHost);
-	cout<<"GPU stream compact result: ";
-	cout<<res[n/2]<<" "<<res[n/2+1];
+	//cout<<"GPU stream compact result: ";
+	//cout<<res[n/2 - 2]<<endl;
 
-/*
-	for(int i=0;i<(n/2);i++)
-	{
-		cout<<res[i]<<" ";
-	}*/
 	#endif///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	//GPU stream compaction using thrust
+	#if(1)///////////////////////////////////////////////////////////////////////////////////////////////////////
+	cudaMemcpy(dev_in,in,n * sizeof(float),cudaMemcpyHostToDevice);
+	ThrustStreamCompaction(dev_in,dev_res,n);
+	//ThrustStreamCompaction(dev_in,dev_res,n);
+	
+	cudaMemcpy(res, dev_res, (n+1)*sizeof(float),cudaMemcpyDeviceToHost);
+	//cout<<"Thrust GPU stream compact result: ";
+	//cout<<res[n/2 - 2]<<endl;
+
+	#endif///////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	//Thrust stream compaction
+	#if(0)///////////////////////////////////////////////////////////////////////////////////////////////////////
+	cudaEvent_t start3, stop3;
+	float time3;
+	cudaEventCreate(&start3);
+	cudaEventCreate(&stop3);
+	cudaEventRecord( start3, 0 );
+
+	int resLen(0);
+	float * ThrustRes = ThrustStreamCompaction(in,n,resLen);
+
+	
+	cudaEventRecord( stop3, 0 );
+	cudaEventSynchronize( stop3 );
+	cudaEventElapsedTime( &time3, start3, stop3 );
+	cudaEventDestroy( start3 );
+	cudaEventDestroy( stop3 );
+	cout<<"Thrust stream compaction: "<<time3<<" ms"<<endl;
+
+	cout<<"Thrust GPU stream compact result: ";
+	cout<<ThrustRes[resLen - 1]<<endl;
+	free(ThrustRes);
+	#endif///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	//free memories
 	free(in);
 	free(res);
 	cudaFree(dev_in);
 	cudaFree(dev_res);
-
+	
 	cin.get();
     return 0;
 }

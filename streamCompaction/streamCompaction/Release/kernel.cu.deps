@@ -687,5 +687,22 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/cu
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/detail/device_vector.inl
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/host_vector.h
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/detail/host_vector.inl
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/copy.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/detail/copy_if.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/detail/copy_if.inl
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/detail/generic/copy_if.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/detail/generic/copy_if.inl
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/detail/adl/copy_if.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/cpp/detail/copy_if.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/detail/internal/scalar/copy_if.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/cuda/detail/copy_if.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/cuda/detail/copy_if.inl
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/count.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/detail/count.inl
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/detail/generic/count.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/detail/generic/count.inl
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/detail/adl/count.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/cpp/detail/count.h
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include\thrust/system/cuda/detail/count.h
 D:\Microsoft Visual Studio 2012\VC\include\ctime
 c:\users\zhen gou\documents\visual studio 2010\projects\project2-streamcompaction\streamcompaction\streamcompaction\CPU_streamCompaction.h
